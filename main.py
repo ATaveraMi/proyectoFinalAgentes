@@ -37,24 +37,32 @@ def intersectionPortrayal(agent):
         portrayal["Layer"] = 3
 
     return portrayal
-# Instantiate the model with the size and the maps
-model = IntersectionModel(
-    size=24,
-    option_map=optionMap,
-    garages=garages,
-    semaphores=Semaphores
-)
 
-# Set up the visualization
-grid = CanvasGrid(intersectionPortrayal, 24, 24, 500, 500)
+# Función para reflejar las posiciones Y
+def mirrored_portrayal(agent):
+    """
+    Aplica un reflejo sobre la arista inferior del grid.
+    """
+    portrayal = intersectionPortrayal(agent)
+    if portrayal is not None:
+        # Obtener la posición del agente
+        x, y = agent.pos
+        # Reflejar la posición Y
+        portrayal["x"] = x
+        portrayal["y"] = 24 - y - 1  # Cambiar aquí 24 por el tamaño del grid si es dinámico
+    return portrayal
 
-# ModularServer setup
+# Crear el grid con la función de reflejo
+grid = CanvasGrid(mirrored_portrayal, 24, 24, 500, 500)
+
+# Configuración del servidor
 server = ModularServer(
     IntersectionModel,
     [grid],
-    "Intersection Simulation",
+    "Intersection Simulation (Mirrored)",
     {"size": 24, "option_map": optionMap, "garages": garages, "semaphores": Semaphores}
 )
 
 server.port = 8521
 server.launch()
+
