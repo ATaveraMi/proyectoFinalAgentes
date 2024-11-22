@@ -56,6 +56,7 @@ class CarAgent(Agent):
         self.jammedCounter = 0
         self.agent_type = agent_type  # "cooperative", "competitive", "neutral"
         self.last_negotiation = None
+        self.free_to_go = False
         self.reward_matrix = {
             ("Yield", "Yield"): (5, 5),
             ("Yield", "Advance"): (2, 8),
@@ -67,6 +68,10 @@ class CarAgent(Agent):
         # Recalculate a new path if car is jammed
         self.path = dijkstra(self.model.G, self.pos, self.target_pos)
         self.jammedCounter = 0
+    
+    def move_to_new_location(self):
+        return random.randint(0,1) == 0
+    
 
 
     def negotiate(self, other_agent):
@@ -108,11 +113,21 @@ class CarAgent(Agent):
         return messages
 
     def move(self):
+
+        
         if self.pos == self.target_pos:
-            print(f"Car {self.unique_id} has reached its destination at {self.pos} and will be removed.")
-            self.model.grid.remove_agent(self)  # Remove the car from the grid
-            self.model.schedule.remove(self)    # Remove the car from the schedule
-            self.reached_goal = True
+            if not self.reached_goal:
+                self.reached_goal = True
+                print(f"Car {self.unique_id} has reached its destination.")
+            
+            # Decide to move to a new target position
+            if self.model.endList and random.random() < 0.01:  # 1% chance to move
+                old_pos = self.target_pos
+                self.target_pos = random.choice(self.model.endList)
+                self.model.endList.remove(self.target_pos)
+                self.model.endList.append(old_pos)
+                self.recalculateNewPath()
+                self.reached_goal = False  # Reset reached goal
             return
 
         # Check if the car has already reached its destination or if the path is empty

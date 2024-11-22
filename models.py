@@ -34,7 +34,7 @@ class IntersectionModel(Model):
         self.create_garages()
         self.create_traffic_lights()
         self.create_buildings(size)
-        self.create_cars()
+        self.create_cars_that_park()
 
     """
     Código agregado para darle pasos a los coches.
@@ -102,7 +102,7 @@ class IntersectionModel(Model):
             self.grid.place_agent(garage_agent, pos)
 
 
-    def create_cars(self):
+    def create_cars_that_park(self):
         """Place cars at random starting positions and assign them a target position."""
         for _ in range(self.num_cars):
             if not self.startList:  # Stop if no more starting positions
