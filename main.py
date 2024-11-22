@@ -36,14 +36,16 @@ def intersectionPortrayal(agent):
         portrayal["r"] = 0.3
         portrayal["Color"] = "#0000FF"  # Blue for parking spots
         portrayal["Layer"] = 3
+        
     elif isinstance(agent, CarAgent):
         portrayal["Shape"] = "circle"
         portrayal["r"] = 0.5
         portrayal["Color"] = "black" if agent.state == "happy" else "red"
         portrayal["Layer"] = 3
-
-
     return portrayal
+
+
+"""
 # Instantiate the model with the size and the maps
 model = IntersectionModel(
     size=24,
@@ -51,22 +53,26 @@ model = IntersectionModel(
     garages=garages,
     semaphores=Semaphores
 )
+"""
+
 
 # Set up the visualization
 grid = CanvasGrid(intersectionPortrayal, 24, 24, 500, 500)
+
+model_params = {
+    "size": 24,
+    "option_map": optionMap,
+    "garages": garages,
+    "semaphores": Semaphores,
+    "num_cars": 4,  # Specify the number of cars
+}
 
 # ModularServer setup
 server = ModularServer(
     IntersectionModel,
     [grid],
     "Intersection Simulation",
-    {
-        "size": 24,
-        "option_map": optionMap,
-        "garages": garages,
-        "semaphores": Semaphores,
-        "num_cars": 1,  # Specify the number of cars
-    }
+    model_params
 )
 
 

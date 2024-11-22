@@ -17,12 +17,23 @@ class TrafficLightAgent(Agent):
         super().__init__(unique_id, model)
         self.pos = pos
         self.state = state  # Initial state: "red", "green", or "yellow"
-        
 
         self.timer = 5 if state == "green" else 7  # Set initial timer based on initial state
 
+    """
+    El semáforo lo hice que se cambiara cada X tiempo, falta agregarle lo inteligente.
+    - Orla  
+    """
     def step(self):
-        pass  
+        self.timer -= 1
+        if self.timer == 0:          
+            if self.state == "green":
+                self.state = "red"
+                self.timer = 7
+            else:
+                self.state = "green"
+                self.timer = 5
+
 
 class ParkingSpotAgent(Agent):
     def __init__(self, unique_id, model):
@@ -54,7 +65,6 @@ class CarAgent(Agent):
 
     def recalculateNewPath(self):
         # Recalculate a new path if car is jammed
-        
         self.path = dijkstra(self.model.G, self.pos, self.target_pos)
         self.jammedCounter = 0
 
@@ -133,16 +143,26 @@ class CarAgent(Agent):
         # Get the allowed directions for the current position
         allowed_directions = optionMap.get(self.pos, {})
 
+        """
+        ESTA PARTE por alguna razon tenia las direcciones chuecas
+        - Orla
+        """
         # Calculate movement direction
         direction = None
-        if target_coordinates[0] > self.pos[0]:
-            direction = "down"
-        elif target_coordinates[0] < self.pos[0]:
-            direction = "up"
-        elif target_coordinates[1] > self.pos[1]:
+        targetX, targetY = target_coordinates
+        carX, carY = self.pos
+
+        print(self.pos)
+        print(self.path)
+        
+        if targetX > carX:
             direction = "right"
-        elif target_coordinates[1] < self.pos[1]:
+        elif targetX < carX:
             direction = "left"
+        elif targetY > carY:
+            direction = "up"
+        elif targetY < carY:
+            direction = "down"
 
         # Check if the movement direction is allowed
         if direction not in allowed_directions:
@@ -179,5 +199,6 @@ class CarAgent(Agent):
             print(f"Car {self.unique_id} at {self.pos} waiting; can_move: {can_move}, jammedCounter: {self.jammedCounter}")
             self.jammedCounter += 1
                     
+
     def step(self):
         self.move()

@@ -59,7 +59,7 @@ def dijkstra(graph, start, goal):
 
     while frontier:
         # Pop the node with the lowest cost
-        current_cost, current_node = heapq.heappop(frontier)
+        _, current_node = heapq.heappop(frontier)
 
         # Stop if we've reached the goal
         if current_node == goal:
@@ -67,7 +67,7 @@ def dijkstra(graph, start, goal):
             while current_node != start:
                 path.append(current_node)
                 current_node = came_from[current_node]
-            path.append(start)
+            # path.append(start) Esto hace que la lista contenga el inicio y coincida el inicio.
             return path[::-1]  # Reverse the path to get start-to-goal order
 
         visited.add(current_node)
