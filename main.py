@@ -1,5 +1,6 @@
-from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent
+from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent
 from map import optionMap, garages, Semaphores
+
 from models import IntersectionModel
 from mesa.visualization.modules import CanvasGrid, ChartModule
 from mesa.visualization.ModularVisualization import ModularServer
@@ -35,6 +36,12 @@ def intersectionPortrayal(agent):
         portrayal["r"] = 0.3
         portrayal["Color"] = "#0000FF"  # Blue for parking spots
         portrayal["Layer"] = 3
+    elif isinstance(agent, CarAgent):
+        portrayal["Shape"] = "circle"
+        portrayal["r"] = 0.5
+        portrayal["Color"] = "black" if agent.state == "happy" else "red"
+        portrayal["Layer"] = 3
+
 
     return portrayal
 # Instantiate the model with the size and the maps
@@ -53,8 +60,15 @@ server = ModularServer(
     IntersectionModel,
     [grid],
     "Intersection Simulation",
-    {"size": 24, "option_map": optionMap, "garages": garages, "semaphores": Semaphores}
+    {
+        "size": 24,
+        "option_map": optionMap,
+        "garages": garages,
+        "semaphores": Semaphores,
+        "num_cars": 40,  # Specify the number of cars
+    }
 )
+
 
 server.port = 8521
 server.launch()
