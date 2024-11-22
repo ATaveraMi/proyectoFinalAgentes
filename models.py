@@ -4,14 +4,14 @@ from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 import random
 from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent
-from map import optionMap, endList, Semaphores
-from aStar import astarComplete, manhattan_distance, create_maximal_graph
-
+from map import optionMap, endList, startList
+from dijkstra import dijkstra, create_maximal_graph
 
 class IntersectionModel(Model):
     def __init__(self, size, option_map, garages, semaphores, num_cars=10):
         super().__init__()
         self.size = size
+        self.traffic_lights = []  
         self.schedule = SimultaneousActivation(self)
         self.grid = MultiGrid(size, size, torus=False)
         self.running = True
@@ -26,15 +26,33 @@ class IntersectionModel(Model):
         self.G = create_maximal_graph(optionMap)
 
         # Initialize agents
-        self.create_cells()
+        
         self.create_garages()
         self.create_traffic_lights()
         self.create_buildings(size)
         self.create_cars()
 
     def initialize_graph(self):
-        """Create the graph for the A* algorithm based on the optionMap."""
+        
         return create_maximal_graph(self.option_map)
+    def create_traffic_lights(self):
+        for pos, state in self.semaphores:
+            if self.grid.is_cell_empty(pos):
+                traffic_light_agent = TrafficLightAgent(self.next_id(), self, pos, state)
+                self.schedule.add(traffic_light_agent)
+                self.grid.place_agent(traffic_light_agent, pos)
+                self.traffic_lights.append(traffic_light_agent)  # Add to the list
+            else:
+                print(f"Position {pos} is already occupied. Skipping.")
+
+        # Set the first traffic light to green
+        if self.traffic_lights:
+            self.light_index = 0
+            first_light = self.traffic_lights[self.light_index]
+            first_light.state = "green"
+            first_light.timer = 6  # Green lasts 6 seconds
+            print(f"Traffic light at {first_light.pos} initialized to green.")
+
 
 
 
@@ -66,49 +84,38 @@ class IntersectionModel(Model):
             self.schedule.add(garage_agent)
             self.grid.place_agent(garage_agent, pos)
 
-    def create_traffic_lights(self):
-        for pos, state in self.semaphores:
-            if self.grid.is_cell_empty(pos):
-                traffic_light_agent = TrafficLightAgent(self.next_id(), self, pos, state)
-                self.schedule.add(traffic_light_agent)
-                self.grid.place_agent(traffic_light_agent, pos)
-            else:
-                print(f"Position {pos} is already occupied. Skipping.")
-
     def create_cars(self):
-        max_retries = 50
+        """Place cars at random starting positions and assign them a target position."""
         for _ in range(self.num_cars):
-            retries = 0
-            while retries < max_retries:
-                if not endList:  # Stop if no more target positions
-                    print("No available target positions remaining.")
-                    return
+            if not startList:  # Stop if no more starting positions
+                print("No available starting positions remaining.")
+                return
+            if not endList:  # Stop if no more target positions
+                print("No available target positions remaining.")
+                return
 
-                x = self.random.randrange(self.size)
-                y = self.random.randrange(self.size)
-                starting_pos = (x, y)
+            # Randomly select starting and target positions
+            starting_pos = random.choice(startList)
+            startList.remove(starting_pos)
 
-                if self.grid.is_cell_empty(starting_pos):
-                    target_pos = self.random.choice(endList)
+            target_pos = random.choice(endList)
+            endList.remove(target_pos)
 
-                    path = astarComplete(self.G, starting_pos, target_pos, manhattan_distance)
+            # Compute the shortest path using Dijkstra
+            path = dijkstra(self.G, starting_pos, target_pos)
+            if not path:
+                print(f"No path found from {starting_pos} to {target_pos}. Skipping this car.")
+                continue
 
-                    if path:
-                        car_agent = CarAgent(
-                            unique_id=self.next_id(),
-                            model=self,
-                            starting_pos=starting_pos,
-                            target_pos=target_pos,
-                            path=path,
-                        )
-                        self.schedule.add(car_agent)
-                        self.grid.place_agent(car_agent, starting_pos)
-                       
-                        print(f"Placed car {car_agent.unique_id} at {starting_pos} targeting {target_pos}")
-                        break
-                    else:
-                        print(f"No path found from {starting_pos} to {target_pos}. Retrying.")
-                retries += 1
+            # Create a car agent and place it on the grid
+            car_agent = CarAgent(
+                unique_id=self.next_id(),
+                model=self,
+                starting_pos=starting_pos,
+                target_pos=target_pos,
+                path=path,
+            )
+            self.schedule.add(car_agent)
+            self.grid.place_agent(car_agent, starting_pos)
 
-            if retries == max_retries:
-                print(f"Failed to place a car after {max_retries} retries. Skipping.")
+            print(f"Created Car {car_agent.unique_id} at {starting_pos} targeting {target_pos}.")

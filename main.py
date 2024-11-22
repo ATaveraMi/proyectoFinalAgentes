@@ -1,5 +1,5 @@
 from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent
-from map import optionMap, garages, Semaphores
+from map import optionMap, garages, Semaphores, startList
 
 from models import IntersectionModel
 from mesa.visualization.modules import CanvasGrid, ChartModule
@@ -65,7 +65,7 @@ server = ModularServer(
         "option_map": optionMap,
         "garages": garages,
         "semaphores": Semaphores,
-        "num_cars": 40,  # Specify the number of cars
+        "num_cars": 1,  # Specify the number of cars
     }
 )
 
