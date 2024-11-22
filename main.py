@@ -1,4 +1,4 @@
-from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent
+from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent, ParkingCarAgent
 from map import optionMap, garages, Semaphores, startList
 
 from models import IntersectionModel
@@ -42,6 +42,11 @@ def intersectionPortrayal(agent):
         portrayal["r"] = 0.5
         portrayal["Color"] = "black" if agent.state == "happy" else "red"
         portrayal["Layer"] = 3
+    elif isinstance(agent, ParkingCarAgent):
+        portrayal["Shape"] = "circle"
+        portrayal["r"] = 0.5
+        portrayal["Color"] = "brown" if agent.state == "happy" else "yellow"
+        portrayal["Layer"] = 3
     return portrayal
 
 
@@ -64,7 +69,7 @@ model_params = {
     "option_map": optionMap,
     "garages": garages,
     "semaphores": Semaphores,
-    "num_cars": 4,  # Specify the number of cars
+    "num_cars": 20,  # Specify the number of cars
 }
 
 # ModularServer setup

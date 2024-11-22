@@ -3,10 +3,10 @@ from mesa.time import SimultaneousActivation
 from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 import random
-from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent
+from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent, ParkingCarAgent
 from dijkstra import dijkstra, create_maximal_graph
 
-from map import endList, startList
+from map import endList, startList, optionMap
 
 class IntersectionModel(Model):
     def __init__(self, size, option_map, garages, semaphores, num_cars=10):
@@ -18,7 +18,9 @@ class IntersectionModel(Model):
         self.running = True
         self.current_id = 0  # Initialize current_id for unique agent IDs
         self.parked_cars = 0
+        self.used_starts = set()
         
+        self.remaining_slots = len(garages)
         self.option_map = option_map
         self.garages = garages
         self.semaphores = semaphores
@@ -34,7 +36,7 @@ class IntersectionModel(Model):
         self.create_garages()
         self.create_traffic_lights()
         self.create_buildings(size)
-        self.create_cars_that_park()
+        self.create_cars()
 
     """
     Código agregado para darle pasos a los coches.
@@ -100,40 +102,64 @@ class IntersectionModel(Model):
             garage_agent = ParkingSpotAgent(self.next_id(), self)
             self.schedule.add(garage_agent)
             self.grid.place_agent(garage_agent, pos)
+        
 
+    def create_cars(self):
+        """Create agents with a mix of wanderers and parking cars."""
+        num_parking_cars = 0  # Track the number of ParkingCarAgents created
 
-    def create_cars_that_park(self):
-        """Place cars at random starting positions and assign them a target position."""
+        # Get all possible positions from optionMap
+        available_positions = list(self.option_map.keys())
+
         for _ in range(self.num_cars):
-            if not self.startList:  # Stop if no more starting positions
-                print("No available starting positions remaining.")
+            # Select a random starting position
+            if not available_positions:
+                print("No available positions remaining in optionMap.")
                 return
-            if not self.endList:  # Stop if no more target positions
-                print("No available target positions remaining.")
-                return
+            
+            starting_pos = random.choice(available_positions)
 
-            # Randomly select starting and target positions
-            starting_pos = random.choice(self.startList)
-            self.startList.remove(starting_pos)
+            # Ensure the position is not occupied
+            cell_contents = self.grid.get_cell_list_contents([starting_pos])
+            if any(isinstance(agent, CarAgent) or isinstance(agent, ParkingCarAgent) for agent in cell_contents):
+                continue  # Skip to the next iteration if the position is occupied
 
-            target_pos = random.choice(self.endList)
-            self.endList.remove(target_pos)
+            # Decide the type of car (40% chance for ParkingCarAgent)
+            if random.random() < 0.4 and num_parking_cars < len(self.endList):
+                # Create a ParkingCarAgent
+                if not self.endList:  # Ensure there are target positions left
+                    print("No available parking slots remaining.")
+                    continue
 
-            # Compute the shortest path using Dijkstra
-            path = dijkstra(self.G, starting_pos, target_pos)
-            if not path:
-                print(f"No path found from {starting_pos} to {target_pos}. Skipping this car.")
-                continue
+                target_pos = random.choice(self.endList)
+                self.endList.remove(target_pos)
 
-            # Create a car agent and place it on the grid
-            car_agent = CarAgent(
-                unique_id=self.next_id(),
-                model=self,
-                starting_pos=starting_pos,
-                target_pos=target_pos,
-                path=path,
-            )
+                # Compute the shortest path using Dijkstra
+                path = dijkstra(self.G, starting_pos, target_pos)
+                if not path:
+                    print(f"No path found from {starting_pos} to {target_pos}. Skipping this car.")
+                    continue
+
+                car_agent = ParkingCarAgent(
+                    unique_id=self.next_id(),
+                    model=self,
+                    starting_pos=starting_pos,
+                    target_pos=target_pos,
+                    path=path,
+                )
+                num_parking_cars += 1
+                print(f"Created ParkingCarAgent {car_agent.unique_id} at {starting_pos} targeting {target_pos}.")
+            else:
+                # Create a WandererAgent
+                car_agent = CarAgent(
+                    unique_id=self.next_id(),
+                    model=self,
+                )
+                print(f"Created CarAgent {car_agent.unique_id} at {starting_pos} wandering freely.")
+
+            # Add the car agent to the schedule and place it on the grid
             self.schedule.add(car_agent)
             self.grid.place_agent(car_agent, starting_pos)
 
-            print(f"Created Car {car_agent.unique_id} at {starting_pos} targeting {target_pos}.")
+            # Remove the position from available_positions to avoid reuse
+            available_positions.remove(starting_pos)

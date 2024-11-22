@@ -43,8 +43,101 @@ class ParkingSpotAgent(Agent):
     def step(self):
         # Implement behavior for cars parking/unparking if needed
         pass
-    
+
 class CarAgent(Agent):
+    def __init__(self, unique_id, model, agent_type="neutral"):
+        super().__init__(unique_id, model)
+        self.agent_type = agent_type  # "cooperative", "competitive", "neutral"
+        self.state = "happy"
+        self.happiness = 100
+        self.jammedCounter = 0
+        self.last_negotiation = None
+        self.reward_matrix = {
+            ("Yield", "Yield"): (5, 5),
+            ("Yield", "Advance"): (2, 8),
+            ("Advance", "Yield"): (8, 2),
+            ("Advance", "Advance"): (3, 3)
+        }
+    def negotiate(self, other_agent):
+        # Determine the negotiation outcome based on agent types
+        if self.agent_type == "competitive" and other_agent.agent_type == "competitive":
+            my_action, other_reward = "Advance", "Advance"
+        elif self.agent_type == "cooperative":
+            my_action, other_reward = "Yield", "Advance"
+        elif other_agent.agent_type == "cooperative":
+            my_action, other_reward = "Advance", "Yield"
+        else:
+            my_action, other_reward = "Yield", "Yield"
+        
+        # Determine rewards (for potential future use)
+        my_reward, other_reward = self.reward_matrix[(my_action, other_reward)]
+
+        # Set the last_negotiation attribute based on the outcome
+        if my_action == "Yield" and other_reward == "Yield":
+            self.last_negotiation = "Yield"
+        elif my_action == "Advance" and other_reward == "Advance":
+            self.last_negotiation = "Stalemate"
+        else:
+            self.last_negotiation = "Advance" if my_action == "Advance" else "Yield"
+        
+        return my_action, my_reward
+    
+    def move(self):
+        # Get allowed directions from optionMap for the current position
+        allowed_directions = optionMap.get(self.pos, {})
+        possible_moves = []
+
+        for direction, weight in allowed_directions.items():
+            if direction == "up":
+                next_pos = (self.pos[0], self.pos[1] + 1)
+            elif direction == "down":
+                next_pos = (self.pos[0], self.pos[1] - 1)
+            elif direction == "left":
+                next_pos = (self.pos[0] - 1, self.pos[1])
+            elif direction == "right":
+                next_pos = (self.pos[0] + 1, self.pos[1])
+            else:
+                continue
+
+            # Check if the cell is within bounds and not occupied
+            if not self.model.grid.out_of_bounds(next_pos):
+                cell_contents = self.model.grid.get_cell_list_contents([next_pos])
+                if not any(isinstance(agent, (CarAgent, ParkingCarAgent)) for agent in cell_contents):
+                    possible_moves.append(next_pos)
+
+        # Filter moves further by checking traffic lights
+        valid_moves = []
+        for move in possible_moves:
+            if move in self.model.garages:
+                continue
+            semaphore = next(
+                (agent for agent in self.model.schedule.agents if isinstance(agent, TrafficLightAgent) and agent.pos == move),
+                None
+            )
+            if semaphore is None or semaphore.state == "green":
+                valid_moves.append(move)
+
+        # Randomly choose a valid move
+        if valid_moves:
+            next_move = random.choice(valid_moves)
+            self.model.grid.move_agent(self, next_move)
+            self.pos = next_move
+            self.jammedCounter = 0  # Reset jammed counter after moving
+            print(f"CarAgent {self.unique_id} moved to {next_move}.")
+        else:
+            # Increment jammed counter if no valid moves
+            self.jammedCounter += 1
+            print(f"CarAgent {self.unique_id} at {self.pos} cannot move. JammedCounter: {self.jammedCounter}")
+
+    
+    
+
+
+    def step(self):
+        self.move()
+
+    
+class ParkingCarAgent(Agent):
     def __init__(self, unique_id, model, starting_pos, target_pos, path, agent_type="neutral"):
         super().__init__(unique_id, model)
         self.starting_pos = starting_pos
@@ -104,7 +197,7 @@ class CarAgent(Agent):
         nearby_agents = self.model.grid.get_neighbors(self.pos, moore=True, include_center=False)
         messages = []
         for agent in nearby_agents:
-            if isinstance(agent, CarAgent) and agent != self:
+            if isinstance(agent, ParkingCarAgent) and agent != self:
                 messages.append({
                     "agent_id": agent.unique_id,
                     "position": agent.pos,
