@@ -1,7 +1,7 @@
 from mesa import Agent
 import random
 from mesa.space import MultiGrid
-from aStar import astarComplete, manhattan_distance
+from dijkstra import dijkstra
 from map import endList, optionMap
 class BuildingAgent(Agent):
     def __init__(self, unique_id, model):
@@ -54,11 +54,8 @@ class CarAgent(Agent):
 
     def recalculateNewPath(self):
         # Recalculate a new path if car is jammed
-        new_target_pos = random.choice(endList)
-        while new_target_pos == self.target_pos:
-            new_target_pos = random.choice(endList)
-        self.target_pos = new_target_pos
-        self.path = astarComplete(self.model.G, self.pos, self.target_pos, manhattan_distance)
+        
+        self.path = dijkstra(self.model.G, self.pos, self.target_pos)
         self.jammedCounter = 0
 
 
