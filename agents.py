@@ -3,6 +3,7 @@ import random
 from mesa.space import MultiGrid
 from dijkstra import dijkstra
 from map import endList, optionMap
+
 class BuildingAgent(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
@@ -10,7 +11,6 @@ class BuildingAgent(Agent):
 
     def step(self):
         pass
-
 
 class TrafficLightAgent(Agent):
     def __init__(self, unique_id, model, pos, state):
@@ -33,7 +33,6 @@ class TrafficLightAgent(Agent):
             else:
                 self.state = "green"
                 self.timer = 5
-
 
 class ParkingSpotAgent(Agent):
     def __init__(self, unique_id, model):
@@ -149,8 +148,6 @@ class CarAgent(Agent):
         else:
             self.state = "happy"
 
-
-    
 class ParkingCarAgent(Agent):
     def __init__(self, unique_id, model, starting_pos, target_pos, path, agent_type="neutral"):
         super().__init__(unique_id, model)
