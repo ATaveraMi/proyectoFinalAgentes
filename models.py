@@ -3,7 +3,7 @@ from mesa.time import SimultaneousActivation
 from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 import random
-from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent, ParkingCarAgent
+from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent, ParkingCarAgent, WrecklessAgent
 from dijkstra import dijkstra, create_maximal_graph
 
 from map import endList, startList, optionMap
@@ -45,15 +45,12 @@ class IntersectionModel(Model):
     def step(self):
         self.schedule.step()
 
-
     def initialize_graph(self):
         return create_maximal_graph(self.option_map)
     
-
     def reset(self):
         self.startList = startList.copy()
         self.endList = self.garages.copy()
-
 
     def create_traffic_lights(self):
         for pos, state in self.semaphores:
@@ -73,14 +70,12 @@ class IntersectionModel(Model):
             first_light.timer = 6  # Green lasts 6 seconds
             print(f"Traffic light at {first_light.pos} initialized to green.")
 
-
     def create_cells(self):
         """Populate the grid based on the optionMap."""
         for pos, options in self.option_map.items():
             # Represent the cell as open space or a road
             pass  # Optionally, implement a cell agent if needed
 
-    
     def create_buildings(self, size):
         """Fill in the rest of the grid with buildings."""
         for x in range(size):
@@ -95,7 +90,6 @@ class IntersectionModel(Model):
                     self.schedule.add(building_agent)
                     self.grid.place_agent(building_agent, pos)
 
-
     def create_garages(self):
         """Place parking spots (garages) in the grid."""
         for pos in self.garages:
@@ -103,7 +97,6 @@ class IntersectionModel(Model):
             self.schedule.add(garage_agent)
             self.grid.place_agent(garage_agent, pos)
         
-
     def create_cars(self):
         """Create agents with a mix of wanderers and parking cars."""
         num_parking_cars = 0  # Track the number of ParkingCarAgents created
@@ -125,7 +118,13 @@ class IntersectionModel(Model):
                 continue  # Skip to the next iteration if the position is occupied
 
             # Decide the type of car (40% chance for ParkingCarAgent)
-            if random.random() < 0.4 and num_parking_cars < len(self.endList):
+            if random.random() < 0.1:  # 10% chance to create a WrecklessAgent
+                car_agent = WrecklessAgent(
+                    unique_id=self.next_id(),
+                    model=self
+                )
+                print(f"Created WrecklessAgent {car_agent.unique_id} at {starting_pos}.")
+            elif random.random() < 0.4 and num_parking_cars < len(self.endList):
                 # Create a ParkingCarAgent
                 if not self.endList:  # Ensure there are target positions left
                     print("No available parking slots remaining.")

@@ -1,4 +1,4 @@
-from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent, ParkingCarAgent
+from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent, ParkingCarAgent, WrecklessAgent
 from map import optionMap, garages, Semaphores, startList
 
 from models import IntersectionModel
@@ -41,6 +41,11 @@ def intersectionPortrayal(agent):
         portrayal["Shape"] = "circle"
         portrayal["r"] = 0.5
         portrayal["Color"] = "black" if agent.state == "happy" else "red"
+        portrayal["Layer"] = 3
+    elif isinstance(agent, WrecklessAgent):
+        portrayal["Shape"] = "circle"
+        portrayal["r"] = 0.5
+        portrayal["Color"] = "purple" 
         portrayal["Layer"] = 3
     elif isinstance(agent, ParkingCarAgent):
         portrayal["Shape"] = "circle"
