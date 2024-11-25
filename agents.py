@@ -321,3 +321,77 @@ class ParkingCarAgent(Agent):
 
     def step(self):
         self.move()
+
+class WrecklessAgent(Agent):
+    def __init__(self, unique_id, model, agent_type="wreckless"):
+        super().__init__(unique_id, model)
+        self.state = "wreckless"
+        self.happiness = 100
+        self.jammedCounter = 0
+        self.agent_type = agent_type
+        self.last_passed_lights = set() 
+        self.current_direction = random.choice(["up", "down", "left", "right"])
+
+    def check_semaphore(self, next_pos):
+        """
+        Revisa si hay un semáforo en la posición siguiente.
+        Si lo hay, decide si lo respeta según su estado.
+        """
+        semaphore = next(
+            (agent for agent in self.model.grid.get_cell_list_contents([next_pos]) 
+             if isinstance(agent, TrafficLightAgent)), 
+            None
+        )
+        if semaphore:
+            if semaphore.state in ("red", "yellow") and random.random() < 0.5:
+                # 50% de probabilidad de respetar un semáforo en rojo/amarillo
+                return semaphore
+        return None
+
+    def move(self):
+        """
+        Define el comportamiento de movimiento del agente.
+        """
+        # Posición siguiente según dirección actual
+        next_pos = {
+            "up": (self.pos[0], self.pos[1] + 1),
+            "down": (self.pos[0], self.pos[1] - 1),
+            "right": (self.pos[0] + 1, self.pos[1]),
+            "left": (self.pos[0] - 1, self.pos[1]),
+        }.get(self.current_direction, self.pos)
+
+        # Verificar si la posición es válida
+        if not self.model.grid.out_of_bounds(next_pos):
+            cell_contents = self.model.grid.get_cell_list_contents([next_pos])
+            front_vehicle = any(isinstance(agent, CarAgent) for agent in cell_contents)
+            semaphore = self.check_semaphore(next_pos)
+
+            if not front_vehicle and (not semaphore or semaphore.pos in self.last_passed_lights):
+                # Moverse si no hay vehículo delante y el semáforo no bloquea
+                self.model.grid.move_agent(self, next_pos)
+                self.last_passed_lights.add(next_pos)
+                self.jammedCounter = 0
+                self.happiness += 5
+            else:
+                # Incrementar contador de atasco si no puede moverse
+                self.jammedCounter += 1
+                self.happiness -= 5
+        else:
+            # Cambiar dirección si la posición es inválida
+            self.change_trajectory()
+
+    def change_trajectory(self):
+        """
+        Cambia la dirección del agente de manera aleatoria si se encuentra bloqueado.
+        """
+        self.current_direction = random.choice(["up", "down", "left", "right"])
+
+    def step(self):
+        """
+        Define el comportamiento en cada paso.
+        """
+        self.move()
+        if self.jammedCounter > 5:
+            self.happiness -= 10
+            if random.random() < 0.3:  # 30% de probabilidad de cambiar dirección en atasco.
+                self.change_trajectory()
