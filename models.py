@@ -44,6 +44,7 @@ class IntersectionModel(Model):
     """
     def step(self):
         self.schedule.step()
+        return self.get_traffic_light_states()
 
     def initialize_graph(self):
         return create_maximal_graph(self.option_map)
@@ -162,3 +163,40 @@ class IntersectionModel(Model):
 
             # Remove the position from available_positions to avoid reuse
             available_positions.remove(starting_pos)
+
+
+    def get_traffic_light_states(self):
+        """
+        Obtiene el estado de todos los semáforos en el modelo.
+        Devuelve una lista de diccionarios.
+        """
+        traffic_light_states = []
+        for traffic_light in self.traffic_lights:
+            traffic_light_states.append({
+                "id": traffic_light.unique_id,
+                "position": traffic_light.pos,
+                "state": traffic_light.state,
+                "timer": traffic_light.timer
+            })
+        print(f"ID: {traffic_light_states}")
+        print("-" * 40)
+        return traffic_light_states
+
+    def get_car_states(self):
+        """
+        Devuelve solo el ID, la posición y el tipo de todos los coches en el modelo.
+        """
+        car_states = []
+        for agent in self.schedule.agents:
+            if isinstance(agent, CarAgent):
+                car_states.append({
+                    "id": agent.unique_id,
+                    "position": agent.pos,
+                    "type": agent.agent_type
+                })
+        return car_states
+
+
+
+
+
