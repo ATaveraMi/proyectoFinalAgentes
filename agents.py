@@ -138,7 +138,6 @@ class CarAgent(Agent):
             self.pos = chosen_move
             self.jammedCounter = 0
             self.wait_time = 0  # Reiniciar tiempo de espera después de moverse
-            self.path.append(self.pos)
             self.happiness += 1
         else:
             self.jammedCounter += 1

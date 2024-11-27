@@ -65,26 +65,14 @@ def intersectionPortrayal(agent):
     return portrayal
 
 
-# Instancia del modelo
+"""# Instancia del modelo
 model = IntersectionModel(
     size=24,
     option_map=optionMap,
     garages=garages,
     semaphores=Semaphores,
     num_cars=20  # Especificar número de coches
-)
-
-
-@app.route('/traffic_data', methods=['GET'])
-def get_traffic_data():
-    model.step()
-
-    traffic_lights = model.get_traffic_light_states()
-    cars = model.get_car_states()
-    return jsonify({
-        'traffic_lights': traffic_lights,
-        'cars': cars
-    })
+)"""
 
 
 # Configuración de MESA
@@ -115,18 +103,9 @@ server.port = 8521
 
 model: IntersectionModel = server.model
 
-"""# Instancia del modelo
-model = IntersectionModel(
-    size=24,
-    option_map=optionMap,
-    garages=garages,
-    semaphores=Semaphores,
-    num_cars=50
-)"""
 
 @app.route('/traffic_data', methods=['GET'])
 def get_traffic_data():
-
     model.step()
 
     traffic_lights = model.get_traffic_light_states()
@@ -135,7 +114,6 @@ def get_traffic_data():
         'traffic_lights': traffic_lights,
         'cars': cars
     })
-
 
 # Hilo para ejecutar Flask
 def run_flask():
@@ -152,3 +130,4 @@ if __name__ == "__main__":
     print("Starting MESA server...")
     # Iniciar la simulación MESA
     server.launch()
+    model = server.model
