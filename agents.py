@@ -58,6 +58,7 @@ class CarAgent(Agent):
         self.state = "happy"
         self.happiness = 100
         self.jammedCounter = 0
+        self.path = []
         self.last_negotiation = None
         self.agent_type = agent_type if agent_type else random.choice(["cooperative", "competitive", "neutral"])
         self.reward_matrix = {
@@ -133,6 +134,7 @@ class CarAgent(Agent):
             self.pos = chosen_move
             self.jammedCounter = 0
             self.wait_time = 0  # Reiniciar tiempo de espera después de moverse
+            self.path.append(self.pos)
         else:
             self.jammedCounter += 1
             self.wait_time += 1  # Incrementar tiempo de espera
@@ -149,6 +151,7 @@ class CarAgent(Agent):
 
         # Attempt to move
         self.move()
+        print(f"Car path: {self.path}")
         # Update state based on happiness
         if self.happiness <= 60:
             self.state = "angry"
@@ -167,6 +170,7 @@ class ParkingCarAgent(Agent):
         self.happiness = 100
         self.reached_goal = False
         self.jammedCounter = 0
+        self.path2 = []
         self.agent_type = agent_type  # "cooperative", "competitive", "neutral"
         self.last_negotiation = None
         self.free_to_go = False
@@ -323,6 +327,7 @@ class ParkingCarAgent(Agent):
             self.jammedCounter = 0  # Reset jammed counter
             self.state = "happy"  # Set state to happy whenever the car moves
             self.happiness = min(self.happiness + 10, 100)  # Increase happiness, max at 100
+            self.path2.append(self.pos)
         else:
             print(f"Car {self.unique_id} at {self.pos} waiting; can_move: {can_move}, jammedCounter: {self.jammedCounter}")
             self.jammedCounter += 1
@@ -330,6 +335,7 @@ class ParkingCarAgent(Agent):
 
     def step(self):
         self.move()
+        print(f"ParkingCar path: {self.path2}")
 
 class AmbulanceAgent(Agent):
     def __init__(self, unique_id, model, agent_type="wreckless"):
