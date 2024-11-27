@@ -371,13 +371,7 @@ class AmbulanceAgent(Agent):
             if semaphore:
                 # Decidir según el estado del semáforo
                 if semaphore.state == "red":
-                    ignore_chance = 0
-                    if self.state == "angry":
-                        ignore_chance = 0.5
-                    elif self.state == "furious":
-                        ignore_chance = 0.8
-                    if random.random() < ignore_chance:  # Ignorar el semáforo
-                        valid_moves.append((next_pos, direction))
+                    ignore_chance = 0.9
                 elif semaphore.state == "green":
                     valid_moves.append((next_pos, direction))
             else:
