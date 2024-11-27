@@ -340,10 +340,10 @@ class AmbulanceAgent(Agent):
         self.agent_type = agent_type
         self.last_passed_lights = set()
         self.current_direction = random.choice(["up", "down", "left", "right"])
-        self.pos = None  # Asegúrate de inicializarla o actualizarla al usar grid
+        self.pos = None 
+        self.path = []
 
     def move(self):
-        # Determinar las direcciones permitidas
         allowed_directions = optionMap.get(self.pos, {})
         possible_moves = []
 
@@ -360,7 +360,6 @@ class AmbulanceAgent(Agent):
                 if not any(isinstance(agent, CarAgent) for agent in cell_contents):
                     possible_moves.append((next_pos, direction))
 
-        # Validar movimientos según semáforos
         valid_moves = []
         for next_pos, direction in possible_moves:
             semaphore = next(
@@ -369,26 +368,24 @@ class AmbulanceAgent(Agent):
             )
 
             if semaphore:
-                # Decidir según el estado del semáforo
                 if semaphore.state == "red":
                     ignore_chance = 0.9
                 elif semaphore.state == "green":
                     valid_moves.append((next_pos, direction))
             else:
-                # Sin semáforo, movimiento permitido
                 valid_moves.append((next_pos, direction))
 
-        # Elegir y realizar el movimiento
         if valid_moves:
-            chosen_move = random.choice(valid_moves)  # Selección aleatoria
+            chosen_move = random.choice(valid_moves) 
             self.model.grid.move_agent(self, chosen_move[0])
             self.pos = chosen_move[0]
             self.current_direction = chosen_move[1]
             self.jammedCounter = 0
-        else:
-            self.jammedCounter += 1
+            self.path.append(self.pos)
 
     def step(self):
         # Intentar moverse
         self.move()
+        print(f"Ambulance path: {self.path}")
+
 
