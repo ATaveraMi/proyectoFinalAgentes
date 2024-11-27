@@ -43,7 +43,6 @@ class TrafficLightAgent(Agent):
                 self.state = "green"
                 self.timer = 5  # Duración del verde
 
-
 class ParkingSpotAgent(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
