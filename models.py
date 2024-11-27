@@ -31,7 +31,12 @@ class IntersectionModel(Model):
 
         # Initialize graph for A* algorithm
         self.G = create_maximal_graph(self.option_map)
-
+        self.datacollector = DataCollector(
+            {
+                "HappyCars": lambda m: sum(1 for a in m.schedule.agents if isinstance(a, CarAgent) and a.state == "happy"),
+                "AngryCars": lambda m: sum(1 for a in m.schedule.agents if isinstance(a, CarAgent) and a.state == "angry")
+            }
+        )
         # Initialize agents
         self.create_garages()
         self.create_traffic_lights()
@@ -44,6 +49,7 @@ class IntersectionModel(Model):
     """
     def step(self):
         self.schedule.step()
+        self.datacollector.collect(self)
         return self.get_traffic_light_states()
 
     def initialize_graph(self):
