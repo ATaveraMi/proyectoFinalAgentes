@@ -58,7 +58,7 @@ class CarAgent(Agent):
         self.state = "happy"
         self.happiness = 100
         self.jammedCounter = 0
-        self.path = []
+        self.sim_path = []
         self.last_negotiation = None
         self.agent_type = agent_type if agent_type else random.choice(["cooperative", "competitive", "neutral"])
         self.reward_matrix = {
@@ -87,8 +87,10 @@ class CarAgent(Agent):
         self.last_negotiation = my_action
         return my_action, my_reward
 
+
     def move(self):
         # Determine valid moves based on traffic lights and other cars
+        self.sim_path = []
         allowed_directions = optionMap.get(self.pos, {})
         possible_moves = []
 
@@ -130,11 +132,12 @@ class CarAgent(Agent):
         # Elegir un movimiento o esperar
         if valid_moves:
             chosen_move, direction = random.choice(valid_moves)
+            self.sim_path.append(self.pos)
             self.model.grid.move_agent(self, chosen_move)
+            self.sim_path.append(self.pos)
             self.pos = chosen_move
             self.jammedCounter = 0
             self.wait_time = 0  # Reiniciar tiempo de espera después de moverse
-            self.path.append(self.pos)
         else:
             self.jammedCounter += 1
             self.wait_time += 1  # Incrementar tiempo de espera
@@ -151,7 +154,8 @@ class CarAgent(Agent):
 
         # Attempt to move
         self.move()
-        print(f"Car path: {self.path}")
+        print(f"Car pos: {self.pos}")
+        print(f"Car path: {self.sim_path}")
         # Update state based on happiness
         if self.happiness <= 60:
             self.state = "angry"
@@ -283,9 +287,6 @@ class ParkingCarAgent(Agent):
         direction = None
         targetX, targetY = target_coordinates
         carX, carY = self.pos
-
-        print(self.pos)
-        print(self.path)
         
         if targetX > carX:
             direction = "right"
@@ -335,7 +336,8 @@ class ParkingCarAgent(Agent):
 
     def step(self):
         self.move()
-        print(f"ParkingCar path: {self.path2}")
+        print(f"ParkingCar pos: {self.pos}")
+        print(f"ParkingCar path: {self.path}")
 
 class AmbulanceAgent(Agent):
     def __init__(self, unique_id, model, agent_type="wreckless"):
@@ -346,11 +348,12 @@ class AmbulanceAgent(Agent):
         self.last_passed_lights = set()
         self.current_direction = random.choice(["up", "down", "left", "right"])
         self.pos = None 
-        self.path = []
+        self.sim_path = []
 
     def move(self):
         allowed_directions = optionMap.get(self.pos, {})
         possible_moves = []
+        self.sim_path = []
 
         for direction, weight in allowed_directions.items():
             next_pos = {
@@ -381,16 +384,18 @@ class AmbulanceAgent(Agent):
                 valid_moves.append((next_pos, direction))
 
         if valid_moves:
+            self.sim_path.append(self.pos)
             chosen_move = random.choice(valid_moves) 
             self.model.grid.move_agent(self, chosen_move[0])
             self.pos = chosen_move[0]
             self.current_direction = chosen_move[1]
             self.jammedCounter = 0
-            self.path.append(self.pos)
+            self.sim_path.append(self.pos)
 
     def step(self):
         # Intentar moverse
         self.move()
-        print(f"Ambulance path: {self.path}")
+        print(f"Ambulance pos: {self.pos}")
+        print(f"Ambulance path: {self.sim_path}")
 
 

@@ -2,39 +2,14 @@ from flask import Flask, jsonify
 from threading import Thread
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
-from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent
+from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent, AmbulanceAgent, ParkingCarAgent
 from models import IntersectionModel
+
 from map import optionMap, garages, Semaphores
+from unity_mapping import mapping
 
 # Crear la aplicación Flask
 app = Flask(__name__)
-
-# Instancia del modelo
-model = IntersectionModel(
-    size=24,
-    option_map=optionMap,
-    garages=garages,
-    semaphores=Semaphores
-)
-
-
-@app.route('/traffic_data', methods=['GET'])
-def get_traffic_data():
-
-    model.step()
-
-    traffic_lights = model.get_traffic_light_states()
-    cars = model.get_car_states()
-    return jsonify({
-        'traffic_lights': traffic_lights,
-        'cars': cars
-    })
-
-
-# Hilo para ejecutar Flask
-def run_flask():
-    print("Starting Flask server...")
-    app.run(port=5000, debug=False, use_reloader=False)
 
 # Configurar la visualización de MESA
 def intersectionPortrayal(agent):
@@ -72,7 +47,16 @@ def intersectionPortrayal(agent):
         portrayal["r"] = 0.5
         portrayal["Color"] = "black" if agent.state == "happy" else "red"
         portrayal["Layer"] = 3  # Layer para coches
-
+    elif isinstance(agent, AmbulanceAgent):
+        portrayal["Shape"] = "circle"
+        portrayal["r"] = 0.5
+        portrayal["Color"] = "purple" 
+        portrayal["Layer"] = 3
+    elif isinstance(agent, ParkingCarAgent):
+        portrayal["Shape"] = "circle"
+        portrayal["r"] = 0.5
+        portrayal["Color"] = "brown" if agent.state == "happy" else "yellow"
+        portrayal["Layer"] = 3
     else:
         portrayal["Layer"] = 0  # Fallback layer
 
@@ -89,11 +73,40 @@ server = ModularServer(
         "option_map": optionMap,
         "garages": garages,
         "semaphores": Semaphores,
-        "num_cars": 4
+        "num_cars": 50
     }
 )
 
 server.port = 8521
+
+model: IntersectionModel = server.model
+
+"""# Instancia del modelo
+model = IntersectionModel(
+    size=24,
+    option_map=optionMap,
+    garages=garages,
+    semaphores=Semaphores,
+    num_cars=50
+)"""
+
+@app.route('/traffic_data', methods=['GET'])
+def get_traffic_data():
+
+    model.step()
+
+    traffic_lights = model.get_traffic_light_states()
+    cars = model.get_car_states()
+    return jsonify({
+        'traffic_lights': traffic_lights,
+        'cars': cars
+    })
+
+
+# Hilo para ejecutar Flask
+def run_flask():
+    print("Starting Flask server...")
+    app.run(port=5000, debug=False, use_reloader=False)
 
 # Bloque principal
 if __name__ == "__main__":

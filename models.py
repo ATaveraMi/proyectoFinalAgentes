@@ -7,6 +7,7 @@ from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent,
 from dijkstra import dijkstra, create_maximal_graph
 
 from map import endList, startList, optionMap
+from unity_mapping import mapping
 
 class IntersectionModel(Model):
     def __init__(self, size, option_map, garages, semaphores, num_cars=10):
@@ -63,13 +64,6 @@ class IntersectionModel(Model):
             else:
                 print(f"Position {pos} is already occupied. Skipping.")
 
-        # Set the first traffic light to green
-        if self.traffic_lights:
-            self.light_index = 0
-            first_light = self.traffic_lights[self.light_index]
-            first_light.state = "green"
-            first_light.timer = 6  # Green lasts 6 seconds
-            print(f"Traffic light at {first_light.pos} initialized to green.")
 
     def create_cells(self):
         """Populate the grid based on the optionMap."""
@@ -190,8 +184,28 @@ class IntersectionModel(Model):
             if isinstance(agent, CarAgent):
                 car_states.append({
                     "id": agent.unique_id,
-                    "position": agent.pos,
-                    "type": agent.agent_type
+                    "path": [ mapping[pos] for pos in agent.sim_path ],
+                    "type": "regular_car",
+                    "state": agent.agent_type,
+                    "pos": mapping[agent.pos]
+                })
+            elif isinstance(agent, ParkingCarAgent):
+                sim_path = [ mapping[pos] for pos in agent.path[:2] ]
+                sim_path.insert(0, mapping[agent.pos])
+                car_states.append({
+                    "id": agent.unique_id,
+                    "path": sim_path,
+                    "type": "parking_car",
+                    "state": agent.agent_type,
+                    "pos": mapping[agent.pos]
+                })
+            elif isinstance(agent, AmbulanceAgent):
+                car_states.append({
+                    "id": agent.unique_id,
+                    "path": [ mapping[pos] for pos in agent.sim_path ],
+                    "type": "ambulance_car",
+                    "state": agent.agent_type,
+                    "pos": mapping[agent.pos]
                 })
         return car_states
 
