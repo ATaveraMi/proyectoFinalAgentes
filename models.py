@@ -3,7 +3,7 @@ from mesa.time import SimultaneousActivation
 from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 import random
-from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent, ParkingCarAgent, WrecklessAgent
+from agents import BuildingAgent, TrafficLightAgent, ParkingSpotAgent, CarAgent, ParkingCarAgent, AmbulanceAgent
 from dijkstra import dijkstra, create_maximal_graph
 
 from map import endList, startList, optionMap
@@ -119,12 +119,12 @@ class IntersectionModel(Model):
                 continue  # Skip to the next iteration if the position is occupied
 
             # Decide the type of car (40% chance for ParkingCarAgent)
-            if random.random() < 0.1:  # 10% chance to create a WrecklessAgent
-                car_agent = WrecklessAgent(
+            if random.random() < 0.1:  # 10% chance to create a AmbulanceAgent
+                car_agent = AmbulanceAgent(
                     unique_id=self.next_id(),
                     model=self
                 )
-                print(f"Created WrecklessAgent {car_agent.unique_id} at {starting_pos}.")
+                print(f"Created AmbulanceAgent {car_agent.unique_id} at {starting_pos}.")
             elif random.random() < 0.4 and num_parking_cars < len(self.endList):
                 # Create a ParkingCarAgent
                 if not self.endList:  # Ensure there are target positions left
@@ -163,7 +163,6 @@ class IntersectionModel(Model):
 
             # Remove the position from available_positions to avoid reuse
             available_positions.remove(starting_pos)
-
 
     def get_traffic_light_states(self):
         """

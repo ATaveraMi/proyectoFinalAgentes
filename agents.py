@@ -16,23 +16,33 @@ class TrafficLightAgent(Agent):
     def __init__(self, unique_id, model, pos, state):
         super().__init__(unique_id, model)
         self.pos = pos
-        self.state = state  # Initial state: "red", "green", or "yellow"
+        self.state = "yellow"
 
-        self.timer = 5 if state == "green" else 7  # Set initial timer based on initial state
+        # Timers iniciales según el estado
+        if state == "green":
+            self.timer = 5  # Duración del verde
+        elif state == "yellow":
+            self.timer = 2  # Duración del amarillo
+        else:  # Estado rojo
+            self.timer = 7  # Duración del rojo
 
     """
-    El semáforo lo hice que se cambiara cada X tiempo, falta agregarle lo inteligente.
-    - Orla  
+    Cambia el estado del semáforo cada cierto tiempo,
+    incluyendo el estado amarillo entre verde y rojo.
     """
     def step(self):
         self.timer -= 1
-        if self.timer == 0:          
+        if self.timer == 0:
             if self.state == "green":
+                self.state = "yellow"
+                self.timer = 2  # Duración del amarillo
+            elif self.state == "yellow":
                 self.state = "red"
-                self.timer = 7
-            else:
+                self.timer = 7  # Duración del rojo
+            elif self.state == "red":
                 self.state = "green"
-                self.timer = 5
+                self.timer = 5  # Duración del verde
+
 
 class ParkingSpotAgent(Agent):
     def __init__(self, unique_id, model):
@@ -322,76 +332,69 @@ class ParkingCarAgent(Agent):
     def step(self):
         self.move()
 
-class WrecklessAgent(Agent):
+class AmbulanceAgent(Agent):
     def __init__(self, unique_id, model, agent_type="wreckless"):
         super().__init__(unique_id, model)
         self.state = "wreckless"
-        self.happiness = 100
         self.jammedCounter = 0
         self.agent_type = agent_type
-        self.last_passed_lights = set() 
+        self.last_passed_lights = set()
         self.current_direction = random.choice(["up", "down", "left", "right"])
-
-    def check_semaphore(self, next_pos):
-        """
-        Revisa si hay un semáforo en la posición siguiente.
-        Si lo hay, decide si lo respeta según su estado.
-        """
-        semaphore = next(
-            (agent for agent in self.model.grid.get_cell_list_contents([next_pos]) 
-             if isinstance(agent, TrafficLightAgent)), 
-            None
-        )
-        if semaphore:
-            if semaphore.state in ("red", "yellow") and random.random() < 0.5:
-                # 50% de probabilidad de respetar un semáforo en rojo/amarillo
-                return semaphore
-        return None
+        self.pos = None  # Asegúrate de inicializarla o actualizarla al usar grid
 
     def move(self):
-        """
-        Define el comportamiento de movimiento del agente.
-        """
-        # Posición siguiente según dirección actual
-        next_pos = {
-            "up": (self.pos[0], self.pos[1] + 1),
-            "down": (self.pos[0], self.pos[1] - 1),
-            "right": (self.pos[0] + 1, self.pos[1]),
-            "left": (self.pos[0] - 1, self.pos[1]),
-        }.get(self.current_direction, self.pos)
+        # Determinar las direcciones permitidas
+        allowed_directions = optionMap.get(self.pos, {})
+        possible_moves = []
 
-        # Verificar si la posición es válida
-        if not self.model.grid.out_of_bounds(next_pos):
-            cell_contents = self.model.grid.get_cell_list_contents([next_pos])
-            front_vehicle = any(isinstance(agent, CarAgent) for agent in cell_contents)
-            semaphore = self.check_semaphore(next_pos)
+        for direction, weight in allowed_directions.items():
+            next_pos = {
+                "up": (self.pos[0], self.pos[1] + 1),
+                "down": (self.pos[0], self.pos[1] - 1),
+                "left": (self.pos[0] - 1, self.pos[1]),
+                "right": (self.pos[0] + 1, self.pos[1])
+            }.get(direction, None)
 
-            if not front_vehicle and (not semaphore or semaphore.pos in self.last_passed_lights):
-                # Moverse si no hay vehículo delante y el semáforo no bloquea
-                self.model.grid.move_agent(self, next_pos)
-                self.last_passed_lights.add(next_pos)
-                self.jammedCounter = 0
-                self.happiness += 5
+            if next_pos and not self.model.grid.out_of_bounds(next_pos):
+                cell_contents = self.model.grid.get_cell_list_contents([next_pos])
+                if not any(isinstance(agent, CarAgent) for agent in cell_contents):
+                    possible_moves.append((next_pos, direction))
+
+        # Validar movimientos según semáforos
+        valid_moves = []
+        for next_pos, direction in possible_moves:
+            semaphore = next(
+                (agent for agent in self.model.schedule.agents if isinstance(agent, TrafficLightAgent) and agent.pos == next_pos),
+                None
+            )
+
+            if semaphore:
+                # Decidir según el estado del semáforo
+                if semaphore.state == "red":
+                    ignore_chance = 0
+                    if self.state == "angry":
+                        ignore_chance = 0.5
+                    elif self.state == "furious":
+                        ignore_chance = 0.8
+                    if random.random() < ignore_chance:  # Ignorar el semáforo
+                        valid_moves.append((next_pos, direction))
+                elif semaphore.state == "green":
+                    valid_moves.append((next_pos, direction))
             else:
-                # Incrementar contador de atasco si no puede moverse
-                self.jammedCounter += 1
-                self.happiness -= 5
-        else:
-            # Cambiar dirección si la posición es inválida
-            self.change_trajectory()
+                # Sin semáforo, movimiento permitido
+                valid_moves.append((next_pos, direction))
 
-    def change_trajectory(self):
-        """
-        Cambia la dirección del agente de manera aleatoria si se encuentra bloqueado.
-        """
-        self.current_direction = random.choice(["up", "down", "left", "right"])
+        # Elegir y realizar el movimiento
+        if valid_moves:
+            chosen_move = random.choice(valid_moves)  # Selección aleatoria
+            self.model.grid.move_agent(self, chosen_move[0])
+            self.pos = chosen_move[0]
+            self.current_direction = chosen_move[1]
+            self.jammedCounter = 0
+        else:
+            self.jammedCounter += 1
 
     def step(self):
-        """
-        Define el comportamiento en cada paso.
-        """
+        # Intentar moverse
         self.move()
-        if self.jammedCounter > 5:
-            self.happiness -= 10
-            if random.random() < 0.3:  # 30% de probabilidad de cambiar dirección en atasco.
-                self.change_trajectory()
+
