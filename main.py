@@ -76,11 +76,18 @@ model_params = {
     "semaphores": Semaphores,
     "num_cars": 20,  # Specify the number of cars
 }
+emotion_chart = ChartModule(
+    [
+        {"Label": "HappyCars", "Color": "Blue"},
+        {"Label": "AngryCars", "Color": "Red"}
+    ],
+    data_collector_name='datacollector'
+)
 
 # ModularServer setup
 server = ModularServer(
     IntersectionModel,
-    [grid],
+    [grid, emotion_chart],
     "Intersection Simulation",
     model_params
 )

@@ -138,12 +138,14 @@ class CarAgent(Agent):
             self.pos = chosen_move
             self.jammedCounter = 0
             self.wait_time = 0  # Reiniciar tiempo de espera después de moverse
+            self.path.append(self.pos)
+            self.happiness += 1
         else:
             self.jammedCounter += 1
             self.wait_time += 1  # Incrementar tiempo de espera
             if self.wait_time > 5:
                 self.state = "angry"
-                self.happiness -= 10
+                self.happiness -= 20
 
     def step(self):
         # Check for nearby agents and negotiate if needed
